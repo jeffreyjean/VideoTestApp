@@ -1,0 +1,96 @@
+<Window x:Class="VideoTestApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Video Test App" Width="1280" Height="820" MinWidth="960" MinHeight="620"
+        Background="#0F172A" AllowDrop="True" Drop="OnDrop"
+        Closing="OnClosing">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <DockPanel Margin="0,0,0,14">
+            <Button x:Name="OpenButton" DockPanel.Dock="Right" Content="Open video..." Click="OnOpen"/>
+            <StackPanel>
+                <TextBlock Text="VIDEO TEST APP" FontSize="23" FontWeight="SemiBold"/>
+                <TextBlock Text="Windows media pipeline | Local video + audio | v0.1.0" Foreground="#94A3B8"/>
+            </StackPanel>
+        </DockPanel>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="305"/>
+            </Grid.ColumnDefinitions>
+            <Border Background="Black" CornerRadius="6" ClipToBounds="True">
+                <Grid>
+                    <Image x:Name="VideoImage" Stretch="Uniform"/>
+                    <TextBlock x:Name="EmptyMessage" Text="Open or drop a local test video"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               FontSize="20" Foreground="#94A3B8"/>
+                    <Border Background="#CC0F172A" HorizontalAlignment="Left"
+                            VerticalAlignment="Top" Margin="12" Padding="12,8" CornerRadius="4"
+                            ToolTip="Source FPS: nominal track metadata; may vary for variable-frame-rate files. App-rendered FPS: bitmap updates over a rolling 2-second window, not physical display presentation. GPU-to-CPU copying adds overhead.">
+                        <StackPanel>
+                            <TextBlock x:Name="FpsOverlay" Text="Source: -- FPS   |   App-rendered: 0.0 FPS"
+                                       FontFamily="Consolas" FontSize="17" Foreground="#67E8F9"/>
+                            <TextBlock x:Name="VideoDetails" Text="No video loaded" FontSize="12"
+                                       Foreground="#CBD5E1" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+            <Border Grid.Column="1" Background="#1E293B" CornerRadius="6" Margin="14,0,0,0" Padding="14">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top">
+                        <TextBlock Text="10 common test codecs" FontSize="17" FontWeight="SemiBold"/>
+                        <TextBlock Text="A practical test set, not a popularity ranking."
+                                   TextWrapping="Wrap" Foreground="#94A3B8" Margin="0,5,0,12"/>
+                    </StackPanel>
+                    <TextBlock DockPanel.Dock="Bottom" Margin="0,12,0,0" TextWrapping="Wrap"
+                               Foreground="#94A3B8" FontSize="12"
+                               Text="Codecs are not containers: MP4, MOV, MKV and WebM are file containers. Listing a codec does not guarantee playback. Windows edition, installed decoders, container, profile and bit depth all matter."/>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="CodecList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,0,0,13">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding Containers}" FontSize="12" Foreground="#94A3B8"/>
+                                        <TextBlock Text="{Binding WindowsSupport}" TextWrapping="Wrap"
+                                                   FontSize="12" Foreground="#CBD5E1"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Grid>
+        <StackPanel Grid.Row="2" Margin="0,14,0,0">
+            <TextBlock x:Name="FileNameText" Text="No file selected" TextTrimming="CharacterEllipsis" Margin="0,0,0,8"/>
+            <DockPanel>
+                <TextBlock x:Name="TimeText" DockPanel.Dock="Right" Text="00:00 / 00:00"
+                           FontFamily="Consolas" VerticalAlignment="Center" Margin="12,0,0,0"/>
+                <Slider x:Name="SeekSlider" Minimum="0" Maximum="1" IsEnabled="False"
+                        PreviewMouseLeftButtonDown="OnSeekStarted" PreviewMouseLeftButtonUp="OnSeekFinished"
+                        ValueChanged="OnSeekValueChanged" VerticalAlignment="Center"/>
+            </DockPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                <Button x:Name="PlayButton" Content="Play" IsEnabled="False" Click="OnPlay"/>
+                <Button x:Name="PauseButton" Content="Pause" IsEnabled="False" Click="OnPause"/>
+                <Button x:Name="StopButton" Content="Stop" IsEnabled="False" Click="OnStop"/>
+                <CheckBox x:Name="LoopCheckBox" Content="Loop" Margin="12,0,20,0"
+                          Checked="OnLoopChanged" Unchecked="OnLoopChanged"/>
+                <TextBlock Text="Volume" VerticalAlignment="Center"/>
+                <Slider x:Name="VolumeSlider" Width="120" Minimum="0" Maximum="1" Value="0.5"
+                        Margin="10,0,0,0" VerticalAlignment="Center" ValueChanged="OnVolumeChanged"/>
+            </StackPanel>
+        </StackPanel>
+        <Border Grid.Row="3" Background="#1E293B" CornerRadius="4" Padding="10" Margin="0,14,0,0">
+            <TextBlock x:Name="StatusText" TextWrapping="Wrap" Foreground="#CBD5E1"
+                       Text="Ready. Open a local video. FPS measures this app's rendering path, not decoder-only performance."/>
+        </Border>
+    </Grid>
+</Window>

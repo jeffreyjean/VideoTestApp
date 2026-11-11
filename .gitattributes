@@ -1,0 +1,18 @@
+* text=auto
+
+# Test videos are stored in Git LFS (GitHub rejects files over 100 MB).
+Media/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
+Media/**/*.m4v filter=lfs diff=lfs merge=lfs -text
+Media/**/*.mov filter=lfs diff=lfs merge=lfs -text
+Media/**/*.mkv filter=lfs diff=lfs merge=lfs -text
+Media/**/*.webm filter=lfs diff=lfs merge=lfs -text
+Media/**/*.avi filter=lfs diff=lfs merge=lfs -text
+Media/**/*.wmv filter=lfs diff=lfs merge=lfs -text
+Media/**/*.asf filter=lfs diff=lfs merge=lfs -text
+Media/**/*.mpg filter=lfs diff=lfs merge=lfs -text
+Media/**/*.mpeg filter=lfs diff=lfs merge=lfs -text
+Media/**/*.m2v filter=lfs diff=lfs merge=lfs -text
+Media/**/*.ts filter=lfs diff=lfs merge=lfs -text
+Media/**/*.m2ts filter=lfs diff=lfs merge=lfs -text
+Media/**/*.vob filter=lfs diff=lfs merge=lfs -text
+Media/**/*.mxf filter=lfs diff=lfs merge=lfs -text

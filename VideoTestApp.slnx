@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="VideoTestApp.Tests/VideoTestApp.Tests.csproj" />
+  <Project Path="VideoTestApp/VideoTestApp.csproj" />
+</Solution>
