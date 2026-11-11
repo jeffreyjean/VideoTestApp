@@ -1,0 +1,18 @@
+<Project>
+  <!-- Native x64 and ARM64 builds instead of Any CPU. Each platform selects the matching
+       runtime so the .exe launcher is native for that CPU, not for the build machine. -->
+  <PropertyGroup>
+    <Platforms>x64;ARM64</Platforms>
+  </PropertyGroup>
+  <!-- When no platform is given, follow -r (e.g. dotnet publish -r win-arm64), otherwise default to x64. -->
+  <PropertyGroup Condition="'$(Platform)' == '' or '$(Platform)' == 'AnyCPU'">
+    <Platform Condition="'$(RuntimeIdentifier)' == 'win-arm64'">ARM64</Platform>
+    <Platform Condition="'$(RuntimeIdentifier)' != 'win-arm64'">x64</Platform>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Platform)' == 'x64'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Platform)' == 'ARM64'">
+    <RuntimeIdentifier>win-arm64</RuntimeIdentifier>
+  </PropertyGroup>
+</Project>

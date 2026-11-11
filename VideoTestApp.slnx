@@ -1,4 +1,14 @@
 <Solution>
-  <Project Path="VideoTestApp.Tests/VideoTestApp.Tests.csproj" />
-  <Project Path="VideoTestApp/VideoTestApp.csproj" />
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="ARM64" />
+  </Configurations>
+  <Project Path="VideoTestApp.Tests/VideoTestApp.Tests.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+    <Platform Solution="*|ARM64" Project="ARM64" />
+  </Project>
+  <Project Path="VideoTestApp/VideoTestApp.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+    <Platform Solution="*|ARM64" Project="ARM64" />
+  </Project>
 </Solution>

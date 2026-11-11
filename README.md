@@ -44,18 +44,23 @@ This is a practical test set, not a popularity ranking. A codec appearing here d
 
 ## Build and run
 
+The solution has two native platforms, **x64** and **ARM64**, and no Any CPU. In Visual Studio, choose the platform from the toolbar. On the command line, pass `-p:Platform`. Without it, the solution build defaults to ARM64.
+
 ```powershell
 git clone https://github.com/jeffreyjean/VideoTestApp.git
 cd VideoTestApp
 
-dotnet build VideoTestApp.slnx -c Release
-dotnet run --project VideoTestApp\VideoTestApp.csproj -c Release
+dotnet build VideoTestApp.slnx -c Release -p:Platform=x64
+dotnet build VideoTestApp.slnx -c Release -p:Platform=ARM64
+dotnet run --project VideoTestApp\VideoTestApp.csproj -c Release -p:Platform=x64
 ```
+
+Build output goes to `VideoTestApp\bin\<Platform>\Release\net10.0-windows10.0.19041.0\<win-x64|win-arm64>\`, with `Media` copied beside `VideoTestApp.exe`. An ARM64 build can be made on an x64 machine, but it runs only on an ARM64 device.
 
 Open a video directly:
 
 ```powershell
-dotnet run --project VideoTestApp\VideoTestApp.csproj -c Release -- "C:\path\to\video.mp4"
+dotnet run --project VideoTestApp\VideoTestApp.csproj -c Release -p:Platform=x64 -- "C:\path\to\video.mp4"
 ```
 
 ## Stress mode
@@ -111,8 +116,10 @@ Each run writes a live log to `%TEMP%\VideoTestApp\Stress_<timestamp>.log`, and 
 ## Test
 
 ```powershell
-dotnet test VideoTestApp.slnx -c Release
+dotnet test VideoTestApp.slnx -c Release -p:Platform=x64
 ```
+
+Use the platform that matches the machine: `x64` on an x64 PC and `ARM64` on an ARM64 device. Tests can't run under the other architecture.
 
 The tests cover:
 
@@ -142,7 +149,8 @@ Outputs: `publish\win-x64\VideoTestApp.exe` and `publish\win-arm64\VideoTestApp.
 ## Project structure
 
 ```text
-VideoTestApp.slnx
+VideoTestApp.slnx       Solution with x64 and ARM64 platforms
+Directory.Build.props   Maps each platform to its native Windows runtime
 Media/                  Test videos for stress mode (copied next to the exe)
 VideoTestApp/
   App.xaml(.cs)         App-wide styles and startup
