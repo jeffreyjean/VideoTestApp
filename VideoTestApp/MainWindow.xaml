@@ -31,7 +31,7 @@
                                FontSize="20" Foreground="#94A3B8"/>
                     <Border Background="#CC0F172A" HorizontalAlignment="Left"
                             VerticalAlignment="Top" Margin="12" Padding="12,8" CornerRadius="4"
-                            ToolTip="Source FPS: nominal track metadata; may vary for variable-frame-rate files. App-rendered FPS: bitmap updates over a rolling 2-second window, not physical display presentation. GPU-to-CPU copying adds overhead.">
+                            ToolTip="Source FPS: nominal track metadata; may vary for variable-frame-rate files. App-rendered FPS: frames copied into the app's GPU display surface over a rolling 2-second window, not physical display presentation.">
                         <StackPanel>
                             <TextBlock x:Name="FpsOverlay" Text="Source: -- FPS   |   App-rendered: 0.0 FPS"
                                        FontFamily="Consolas" FontSize="17" Foreground="#67E8F9"/>

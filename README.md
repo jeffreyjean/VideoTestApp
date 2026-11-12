@@ -20,7 +20,7 @@ Built with C# / WPF on .NET 10, using the Windows Media Foundation-backed `Windo
   - Installed HEVC Video Extension package and version
 - Run stress tests with `-Stress` and `-Stress -Loop` using every video in the `Media` folder
 
-> **Note:** App-rendered FPS measures this app's rendering path, which includes copying each frame from the GPU into a WPF bitmap. It is not a decoder-only benchmark and does not measure the frames your display actually shows.
+> **Note:** App-rendered FPS counts frames the app copies into its display surface. Each decoded frame is copied GPU-to-GPU into a Direct3D texture that WPF shows through `D3DImage`, with no CPU copy. It is not a decoder-only benchmark and does not measure the frames your display actually shows. When WPF renders in software, such as over Remote Desktop, WPF copies frames through the CPU and the rate may be lower.
 
 ## Codec test list
 
@@ -169,7 +169,8 @@ Media/                  Test videos for stress mode (copied next to the exe)
 VideoTestApp/
   App.xaml(.cs)         App-wide styles and startup
   MainWindow.xaml(.cs)  UI, playback controls, FPS overlay, and stress mode
-  VideoPlayback.cs      MediaPlayer frame-server playback and frame copying
+  VideoPlayback.cs      MediaPlayer frame-server playback into a D3DImage
+  SharedVideoSurface.cs D3D11 texture shared with D3D9Ex for zero-copy display
   FrameRateMeter.cs     Rolling-window FPS measurement
   StartupOptions.cs     Command-line parsing (-Stress, -Loop, file path)
   MediaLibrary.cs       Media folder discovery

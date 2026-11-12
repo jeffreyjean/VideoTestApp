@@ -1,12 +1,10 @@
 using System.IO;
 using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.WindowsRuntime;
 using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using Windows.Graphics.DirectX;
-using Windows.Graphics.Imaging;
+using SharpGen.Runtime;
 using Windows.Media;
 using Windows.Media.Core;
 using Windows.Media.Playback;
@@ -21,17 +19,16 @@ public sealed class VideoPlayback : IAsyncDisposable
 {
     private readonly Dispatcher _dispatcher;
     private readonly MediaPlayer _player;
-    private readonly SemaphoreSlim _frameGate = new(1, 1);
+    private readonly D3DImage _image = new();
     private MediaSource? _source;
     private MediaPlaybackItem? _item;
-    private VideoFrame? _surface;
-    private byte[]? _pixels;
-    private WriteableBitmap? _bitmap;
+    private SharedVideoSurface? _surface;
     private volatile bool _disposed;
     private int _failed;
+    private int _framePending;
 
     public event Action<VideoInfo>? Opened;
-    public event Action<WriteableBitmap>? FrameRendered;
+    public event Action? FrameRendered;
     public event Action<string>? Failed;
     public event Action? Ended;
 
@@ -48,7 +45,11 @@ public sealed class VideoPlayback : IAsyncDisposable
         _player.MediaFailed += OnMediaFailed;
         _player.MediaEnded += OnMediaEnded;
         _player.VideoFrameAvailable += OnVideoFrameAvailable;
+        _image.IsFrontBufferAvailableChanged += OnFrontBufferAvailableChanged;
     }
+
+    /// <summary>The GPU surface that video frames are rendered into.</summary>
+    public ImageSource Image => _image;
 
     public MediaPlaybackState State => _player.PlaybackSession.PlaybackState;
     public TimeSpan Duration => _player.PlaybackSession.NaturalDuration;
@@ -123,71 +124,85 @@ public sealed class VideoPlayback : IAsyncDisposable
         });
     }
 
-    private async void OnVideoFrameAvailable(MediaPlayer sender, object args)
+    private void OnVideoFrameAvailable(MediaPlayer sender, object args)
     {
-        if (_disposed || Volatile.Read(ref _failed) != 0 || !_frameGate.Wait(0))
+        // While a render is queued, skip further events: the queued render copies the newest frame.
+        if (_disposed || Volatile.Read(ref _failed) != 0 || Interlocked.Exchange(ref _framePending, 1) != 0)
+        {
+            return;
+        }
+
+        _dispatcher.BeginInvoke(RenderFrame, DispatcherPriority.Render);
+    }
+
+    private void RenderFrame()
+    {
+        Volatile.Write(ref _framePending, 0);
+        if (_disposed || Volatile.Read(ref _failed) != 0)
         {
             return;
         }
 
         try
         {
-            if (_disposed)
-            {
-                return;
-            }
-
-            int width = checked((int)sender.PlaybackSession.NaturalVideoWidth);
-            int height = checked((int)sender.PlaybackSession.NaturalVideoHeight);
+            int width = checked((int)_player.PlaybackSession.NaturalVideoWidth);
+            int height = checked((int)_player.PlaybackSession.NaturalVideoHeight);
             if (width == 0 || height == 0)
             {
                 return;
             }
 
-            if (_surface is null || _surface.Direct3DSurface.Description.Width != width ||
-                _surface.Direct3DSurface.Description.Height != height)
+            if (_surface is null || _surface.Width != width || _surface.Height != height)
             {
-                _surface?.Dispose();
-                _surface = VideoFrame.CreateAsDirect3D11SurfaceBacked(
-                    DirectXPixelFormat.B8G8R8A8UIntNormalized, width, height);
-                _pixels = new byte[checked(width * height * 4)];
+                var previous = _surface;
+                _surface = new SharedVideoSurface(width, height);
+                SetBackBuffer();
+                previous?.Dispose();
             }
 
-            sender.CopyFrameToVideoSurface(_surface.Direct3DSurface);
-            using var bitmap = await SoftwareBitmap.CreateCopyFromSurfaceAsync(
-                _surface.Direct3DSurface, BitmapAlphaMode.Ignore);
-            bitmap.CopyToBuffer(_pixels!.AsBuffer());
-
-            await _dispatcher.InvokeAsync(() =>
+            _image.Lock();
+            try
             {
-                if (_disposed || Volatile.Read(ref _failed) != 0)
-                {
-                    return;
-                }
-
-                if (_bitmap is null || _bitmap.PixelWidth != width || _bitmap.PixelHeight != height)
-                {
-                    _bitmap = new WriteableBitmap(width, height, 96, 96, PixelFormats.Bgr32, null);
-                }
-
-                _bitmap.WritePixels(new Int32Rect(0, 0, width, height), _pixels, width * 4, 0);
-                FrameRendered?.Invoke(_bitmap);
-            }, DispatcherPriority.Render);
-        }
-        catch (Exception exception) when (exception is COMException or InvalidOperationException
-                                          or ArgumentException or IOException)
-        {
-            if (!_disposed)
-            {
-                ReportFailure($"Could not render the video frame: {exception.Message} " +
-                              $"(0x{exception.HResult:X8})");
+                _player.CopyFrameToVideoSurface(_surface.Surface);
+                _surface.Flush();
+                _image.AddDirtyRect(new Int32Rect(0, 0, width, height));
             }
+            finally
+            {
+                _image.Unlock();
+            }
+
+            FrameRendered?.Invoke();
         }
-        finally
+        catch (Exception exception) when (exception is COMException or SharpGenException
+                                          or InvalidOperationException or ArgumentException)
         {
-            _frameGate.Release();
+            ReportFailure($"Could not render the video frame: {exception.Message} " +
+                          $"(0x{exception.HResult:X8})");
         }
     }
+
+    // WPF drops the back buffer when its device is lost, so it must be set again once available.
+    private void OnFrontBufferAvailableChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if ((bool)e.NewValue && _surface is not null && !_disposed)
+        {
+            SetBackBuffer();
+        }
+    }
+
+    // Software fallback keeps video visible when WPF renders in software, such as over Remote Desktop.
+    private void SetBackBuffer()
+    {
+        _image.Lock();
+        _image.SetBackBuffer(D3DResourceType.IDirect3DSurface9, _surface?.D3D9Surface ?? IntPtr.Zero,
+            enableSoftwareFallback: true);
+        _image.Unlock();
+    }
+
+    /// <summary>Reads one BGRA pixel of the last rendered frame. Used by tests.</summary>
+    internal byte[] ReadPixel(int x, int y) =>
+        (_surface ?? throw new InvalidOperationException("No frame has been rendered.")).ReadPixel(x, y);
 
     private void ReportFailure(string message)
     {
@@ -205,11 +220,12 @@ public sealed class VideoPlayback : IAsyncDisposable
         });
     }
 
-    public async ValueTask DisposeAsync()
+    // Call on the dispatcher thread: rendering and the D3DImage both run there.
+    public ValueTask DisposeAsync()
     {
         if (_disposed)
         {
-            return;
+            return ValueTask.CompletedTask;
         }
 
         _disposed = true;
@@ -217,19 +233,19 @@ public sealed class VideoPlayback : IAsyncDisposable
         _player.MediaFailed -= OnMediaFailed;
         _player.MediaEnded -= OnMediaEnded;
         _player.VideoFrameAvailable -= OnVideoFrameAvailable;
+        _image.IsFrontBufferAvailableChanged -= OnFrontBufferAvailableChanged;
         _player.Pause();
-        // Drain an in-flight GPU readback before releasing its player and surface.
-        await _frameGate.WaitAsync();
-        try
+        _player.Source = null;
+        _player.Dispose();
+        _source?.Dispose();
+        if (_surface is not null)
         {
-            _player.Source = null;
-            _surface?.Dispose();
-            _player.Dispose();
-            _source?.Dispose();
+            var surface = _surface;
+            _surface = null;
+            SetBackBuffer();
+            surface.Dispose();
         }
-        finally
-        {
-            _frameGate.Release();
-        }
+
+        return ValueTask.CompletedTask;
     }
 }

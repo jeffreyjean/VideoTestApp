@@ -1,5 +1,4 @@
 using System.IO;
-using System.Windows;
 using System.Windows.Threading;
 using Windows.Media.Editing;
 using Windows.Media.MediaProperties;
@@ -56,10 +55,9 @@ public sealed class VideoPlaybackTests
                 var sawBlueFrame = false;
                 playback.Opened += info => opened.TrySetResult(info);
                 playback.Failed += message => failure.TrySetResult(message);
-                playback.FrameRendered += bitmap =>
+                playback.FrameRendered += () =>
                 {
-                    var pixel = new byte[4];
-                    bitmap.CopyPixels(new Int32Rect(160, 90, 1, 1), pixel, 4, 0);
+                    var pixel = playback.ReadPixel(160, 90);
                     if (++frameCount == 10)
                     {
                         sawBlueFrame = pixel[0] > 150 && pixel[2] < 80;

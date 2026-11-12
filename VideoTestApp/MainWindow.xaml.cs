@@ -215,11 +215,11 @@ public partial class MainWindow : Window
                 _filePlayTime.Restart();
                 SetStatus("Playing. Source FPS is nominal metadata; app-rendered FPS uses a rolling 2-second window.");
             };
-            playback.FrameRendered += bitmap =>
+            playback.FrameRendered += () =>
             {
                 if (ReferenceEquals(_playback, playback) && _ready && !_closing)
                 {
-                    VideoImage.Source = bitmap;
+                    VideoImage.Source = playback.Image;
                     EmptyMessage.Visibility = Visibility.Collapsed;
                     if (playback.State == MediaPlaybackState.Playing)
                     {
