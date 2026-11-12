@@ -12,7 +12,8 @@
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Media is copied on build for local runs, but not on publish: the published exe ships alone. -->
     <None Include="..\Media\**\*" LinkBase="Media" CopyToOutputDirectory="PreserveNewest"
-          CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true"/>
+          CopyToPublishDirectory="Never" ExcludeFromSingleFile="true"/>
   </ItemGroup>
 </Project>

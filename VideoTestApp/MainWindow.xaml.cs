@@ -41,12 +41,12 @@ public partial class MainWindow : Window
         _options = options;
         _mediaFolder = mediaFolder;
         InitializeComponent();
-        CodecList.ItemsSource = CodecCatalog.Entries;
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
         _timer.Tick += (_, _) => OnTimerTick();
         _timer.Start();
         Loaded += async (_, _) =>
         {
+            _ = ShowSystemInfoAsync();
             if (_options.Warnings.Count > 0)
             {
                 SetStatus(string.Join(" ", _options.Warnings), true);
@@ -61,6 +61,71 @@ public partial class MainWindow : Window
                 await OpenVideoAsync(_options.FilePath);
             }
         };
+    }
+
+    private async Task ShowSystemInfoAsync()
+    {
+        SystemInfo info;
+        try
+        {
+            info = await Task.Run(SystemInfo.Collect);
+        }
+        catch (Exception exception) when (exception is COMException or UnauthorizedAccessException
+                                          or System.Security.SecurityException)
+        {
+            WindowsNameText.Text = $"System information unavailable: {exception.Message}";
+            GpuPanel.Children.Clear();
+            HevcPanel.Children.Clear();
+            return;
+        }
+
+        WindowsNameText.Text = info.WindowsName;
+        WindowsVersionText.Text = info.WindowsVersion;
+
+        GpuPanel.Children.Clear();
+        var hardware = info.Adapters.Where(adapter => adapter.IsHardware).ToList();
+        if (hardware.Count == 0)
+        {
+            AddInfoLine(GpuPanel, "No hardware GPU detected", bold: true);
+            var software = info.Adapters.FirstOrDefault();
+            AddInfoLine(GpuPanel, $"Render adapter: {software?.Name ?? "none"}");
+            AddInfoLine(GpuPanel, "Expected video decoding: software (CPU)", warning: true);
+        }
+        else
+        {
+            for (var index = 0; index < hardware.Count; index++)
+            {
+                AddInfoLine(GpuPanel, hardware[index].Name, bold: true, top: index == 0 ? 0 : 8);
+                AddInfoLine(GpuPanel, $"Driver version: {hardware[index].DriverVersion ?? "unknown"}");
+            }
+
+            AddInfoLine(GpuPanel, "Expected video decoding: GPU hardware, when the GPU supports the codec", top: 8);
+        }
+
+        HevcPanel.Children.Clear();
+        if (info.HevcPackages.Count == 0)
+        {
+            AddInfoLine(HevcPanel, "Not installed - HEVC (H.265) playback may fail", warning: true);
+        }
+
+        foreach (var package in info.HevcPackages)
+        {
+            AddInfoLine(HevcPanel, package.Name, bold: true);
+            AddInfoLine(HevcPanel, $"Version {package.Version}");
+        }
+    }
+
+    private static void AddInfoLine(Panel panel, string text, bool bold = false, bool warning = false, double top = 0)
+    {
+        panel.Children.Add(new TextBlock
+        {
+            Text = text,
+            TextWrapping = TextWrapping.Wrap,
+            FontSize = bold ? 14 : 12,
+            FontWeight = bold ? FontWeights.SemiBold : FontWeights.Normal,
+            Foreground = warning ? Brushes.Gold : bold ? Brushes.White : (Brush)new BrushConverter().ConvertFrom("#CBD5E1")!,
+            Margin = new Thickness(0, top, 0, 0)
+        });
     }
 
     /// <summary>Process exit code: 0 when a stress run had no failures; 1 otherwise.</summary>

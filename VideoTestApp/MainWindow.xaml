@@ -42,30 +42,28 @@
                 </Grid>
             </Border>
             <Border Grid.Column="1" Background="#1E293B" CornerRadius="6" Margin="14,0,0,0" Padding="14">
-                <DockPanel>
-                    <StackPanel DockPanel.Dock="Top">
-                        <TextBlock Text="10 common test codecs" FontSize="17" FontWeight="SemiBold"/>
-                        <TextBlock Text="A practical test set, not a popularity ranking."
-                                   TextWrapping="Wrap" Foreground="#94A3B8" Margin="0,5,0,12"/>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock Text="System information" FontSize="17" FontWeight="SemiBold" Margin="0,0,0,14"/>
+
+                        <TextBlock Text="WINDOWS" FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"/>
+                        <TextBlock x:Name="WindowsNameText" Text="Loading..." FontWeight="SemiBold"
+                                   TextWrapping="Wrap" Margin="0,3,0,0"/>
+                        <TextBlock x:Name="WindowsVersionText" TextWrapping="Wrap" Foreground="#CBD5E1"
+                                   FontSize="12" Margin="0,0,0,16"/>
+
+                        <TextBlock Text="GRAPHICS AND VIDEO DECODING" FontSize="11" FontWeight="SemiBold"
+                                   Foreground="#94A3B8"/>
+                        <StackPanel x:Name="GpuPanel" Margin="0,3,0,16">
+                            <TextBlock Text="Loading..."/>
+                        </StackPanel>
+
+                        <TextBlock Text="HEVC CODEC PACKAGE" FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8"/>
+                        <StackPanel x:Name="HevcPanel" Margin="0,3,0,0">
+                            <TextBlock Text="Loading..."/>
+                        </StackPanel>
                     </StackPanel>
-                    <TextBlock DockPanel.Dock="Bottom" Margin="0,12,0,0" TextWrapping="Wrap"
-                               Foreground="#94A3B8" FontSize="12"
-                               Text="Codecs are not containers: MP4, MOV, MKV and WebM are file containers. Listing a codec does not guarantee playback. Windows edition, installed decoders, container, profile and bit depth all matter."/>
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <ItemsControl x:Name="CodecList">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Margin="0,0,0,13">
-                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
-                                        <TextBlock Text="{Binding Containers}" FontSize="12" Foreground="#94A3B8"/>
-                                        <TextBlock Text="{Binding WindowsSupport}" TextWrapping="Wrap"
-                                                   FontSize="12" Foreground="#CBD5E1"/>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-                </DockPanel>
+                </ScrollViewer>
             </Border>
         </Grid>
         <StackPanel Grid.Row="2" Margin="0,14,0,0">

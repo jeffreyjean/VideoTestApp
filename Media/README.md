@@ -8,4 +8,4 @@ Put test video files in this folder. Subfolders are included.
 Supported extensions: `.mp4 .m4v .mov .mkv .webm .avi .wmv .asf .mpg .mpeg .m2v .ts .m2ts .vob .mxf`.
 Other files, such as this README, are ignored.
 
-This folder is copied next to `VideoTestApp.exe` on build and publish.
+The app reads videos from a `Media` folder beside `VideoTestApp.exe`. A build copies this folder there automatically. Publish does not, so for a published executable, create a `Media` folder beside it and add your videos.

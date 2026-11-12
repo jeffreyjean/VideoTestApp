@@ -14,14 +14,17 @@ Built with C# / WPF on .NET 10, using the Windows Media Foundation-backed `Windo
   - **App-rendered FPS** – frames delivered to the app's display surface, measured over a rolling 2-second window
 - Show codec subtype and resolution for the loaded video
 - Show a clear error, including the HRESULT, when a file or codec cannot be played
-- List 10 common codecs to include in test passes
+- Show system information in the side panel:
+  - Windows edition and version, matching `winver`
+  - Hardware GPU name and driver version. Without a hardware GPU, such as on a Cloud PC, it shows the software render adapter and that decoding will use the CPU
+  - Installed HEVC Video Extension package and version
 - Run stress tests with `-Stress` and `-Stress -Loop` using every video in the `Media` folder
 
 > **Note:** App-rendered FPS measures this app's rendering path, which includes copying each frame from the GPU into a WPF bitmap. It is not a decoder-only benchmark and does not measure the frames your display actually shows.
 
 ## Codec test list
 
-This is a practical test set, not a popularity ranking. A codec appearing here does not guarantee it will play. Playback depends on the Windows edition, installed decoders, container, profile, and bit depth.
+A suggested set of codecs for building a `Media` folder. This is a practical test set, not a popularity ranking. A codec appearing here does not guarantee it will play. Playback depends on the Windows edition, installed decoders, container, profile, and bit depth.
 
 | Codec | Typical containers | Windows support |
 |---|---|---|
@@ -65,7 +68,7 @@ dotnet run --project VideoTestApp\VideoTestApp.csproj -c Release -p:Platform=x64
 
 ## Stress mode
 
-Put your test videos in the `Media` folder at the repository root. Subfolders are included, and non-video files are ignored. The folder is copied next to `VideoTestApp.exe` on build and publish, and the app reads videos from there. To change the test set for an already published app, edit `publish\<runtime>\Media` directly.
+The app reads videos from a `Media` folder beside `VideoTestApp.exe`. Subfolders are included, and non-video files are ignored. A build copies the repository's `Media` folder there automatically. Publish does not, so for a published executable create `publish\<runtime>\Media` yourself and add your videos.
 
 | Arguments | Behavior |
 |---|---|
@@ -144,7 +147,18 @@ dotnet publish VideoTestApp\VideoTestApp.csproj -c Release -r win-x64 --self-con
 dotnet publish VideoTestApp\VideoTestApp.csproj -c Release -r win-arm64 --self-contained true -p:PublishSingleFile=true -o publish\win-arm64
 ```
 
-Outputs: `publish\win-x64\VideoTestApp.exe` and `publish\win-arm64\VideoTestApp.exe`. The `publish` folder is ignored by git.
+Outputs: `publish\win-x64\VideoTestApp.exe` and `publish\win-arm64\VideoTestApp.exe`. Each is a self-contained single file that runs without .NET installed.
+
+The latest published executables are checked in under `publish\` using Git LFS. Other files in `publish`, such as `.pdb` files, are ignored by git.
+
+The `Media` folder is not copied on publish. To run a stress test with a published executable, create a `Media` folder beside `VideoTestApp.exe` and put your test videos in it:
+
+```text
+publish\win-x64\
+  VideoTestApp.exe
+  Media\
+    your-test-video.mp4
+```
 
 ## Project structure
 
@@ -160,7 +174,7 @@ VideoTestApp/
   StartupOptions.cs     Command-line parsing (-Stress, -Loop, file path)
   MediaLibrary.cs       Media folder discovery
   StressRun.cs          Stress sequencing, results, and live log
-  CodecCatalog.cs       Codec test list
+  SystemInfo.cs         Windows version, GPU adapters and driver versions, HEVC package
 VideoTestApp.Tests/
   FrameRateMeterTests.cs
   StressTests.cs

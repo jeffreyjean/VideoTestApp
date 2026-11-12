@@ -1,5 +1,9 @@
 **/bin/
 **/obj/
 .vs/
-publish/
 *.user
+
+# Commit only the published executables (Git LFS); skip .pdb and anything else in publish.
+publish/**
+!publish/*/
+!publish/*/VideoTestApp.exe

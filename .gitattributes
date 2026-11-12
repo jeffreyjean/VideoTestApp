@@ -16,3 +16,6 @@ Media/**/*.ts filter=lfs diff=lfs merge=lfs -text
 Media/**/*.m2ts filter=lfs diff=lfs merge=lfs -text
 Media/**/*.vob filter=lfs diff=lfs merge=lfs -text
 Media/**/*.mxf filter=lfs diff=lfs merge=lfs -text
+
+# Published self-contained executables exceed GitHub's 100 MB file limit.
+publish/**/*.exe filter=lfs diff=lfs merge=lfs -text
