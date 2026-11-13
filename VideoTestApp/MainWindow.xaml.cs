@@ -22,6 +22,7 @@ public partial class MainWindow : Window
     private readonly StartupOptions _options;
     private readonly string _mediaFolder;
     private readonly Stopwatch _filePlayTime = new();
+    private readonly Stopwatch _stressElapsed = new();
     private VideoPlayback? _playback;
     private VideoInfo? _info;
     private StressRun? _stress;
@@ -269,7 +270,12 @@ public partial class MainWindow : Window
     {
         var files = MediaLibrary.FindVideos(_mediaFolder);
         _stress = new StressRun(files, _options.Loop, StressRun.CreateLogPath());
+        _stressElapsed.Restart();
         StressLogPath = _stress.LogPath;
+        if (_options.LoopDuration is TimeSpan duration)
+        {
+            _stress.Log($"Loop duration: {duration.TotalMinutes:0.###} minutes ({duration.TotalSeconds:0.###} seconds).");
+        }
         foreach (var warning in _options.Warnings)
         {
             _stress.Log("WARNING  " + warning);
@@ -299,6 +305,11 @@ public partial class MainWindow : Window
         }
 
         if (_stress is null || _closing)
+        {
+            return;
+        }
+
+        if (TryEndTimedStress())
         {
             return;
         }
@@ -356,6 +367,7 @@ public partial class MainWindow : Window
 
         var stress = _stress;
         _stress = null;
+        _stressElapsed.Stop();
         stress.Finish(reason);
         stress.Dispose();
         ExitCode = stress.TotalFailed == 0 && (completed || stress.Loop) ? 0 : 1;
@@ -368,6 +380,11 @@ public partial class MainWindow : Window
 
     private void OnTimerTick()
     {
+        if (TryEndTimedStress())
+        {
+            return;
+        }
+
         if (_stress is not null && !_stressFileDone && !_ready && !_opening &&
             _clock.Elapsed - _stressFileStartedAt > StressOpenTimeout)
         {
@@ -377,6 +394,18 @@ public partial class MainWindow : Window
         }
 
         UpdateTelemetry();
+    }
+
+    private bool TryEndTimedStress()
+    {
+        if (_stress is null || _options.LoopDuration is not TimeSpan duration || _stressElapsed.Elapsed < duration)
+        {
+            return false;
+        }
+
+        EndStress($"Loop duration reached ({duration.TotalMinutes:0.###} minutes).", completed: true);
+        Close();
+        return true;
     }
 
     private void OnPlay(object sender, RoutedEventArgs e)

@@ -18,7 +18,7 @@ Built with C# / WPF on .NET 10, using the Windows Media Foundation-backed `Windo
   - Windows edition and version, matching `winver`
   - Hardware GPU name and driver version. Without a hardware GPU, such as on a Cloud PC, it shows the software render adapter and that decoding will use the CPU
   - Installed HEVC Video Extension package and version
-- Run stress tests with `-Stress` and `-Stress -Loop` using every video in the `Media` folder
+- Run stress tests with `-Stress`, `-Loop`, or `-Loop <minutes>` using every video in the `Media` folder
 
 > **Note:** App-rendered FPS counts frames the app copies into its display surface. Each decoded frame is copied GPU-to-GPU into a Direct3D texture that WPF shows through `D3DImage`, with no CPU copy. It is not a decoder-only benchmark and does not measure the frames your display actually shows. When WPF renders in software, such as over Remote Desktop, WPF copies frames through the CPU and the rate may be lower.
 
@@ -73,8 +73,10 @@ The app reads videos from a `Media` folder beside `VideoTestApp.exe`. Subfolders
 | Arguments | Behavior |
 |---|---|
 | `-Stress` | Plays every video in `Media` once, in alphabetical order by path, then exits. |
-| `-Stress -Loop` | Plays every video repeatedly until you press **Stop** or close the app. |
-| `-Loop` alone | Ignored, with a warning in the status bar. `-Loop` requires `-Stress`. |
+| `-Loop` or `-Stress -Loop` | Plays every video repeatedly until you press **Stop** or close the app. `-Loop` automatically enables stress mode. |
+| `-Loop 10` or `-Stress -Loop 10` | Repeats the videos for 10 minutes (600 seconds), then stops and exits, even mid-video. |
+
+The optional `-Loop` duration is a positive number of minutes; fractional minutes such as `-Loop 0.5` are supported using a decimal point. The limit measures elapsed time from the start of the stress run, including opening videos and time spent paused. An invalid duration produces a warning and disables looping, so the app runs `-Stress` once instead of looping forever.
 
 During a stress run:
 
@@ -88,7 +90,7 @@ During a stress run:
 
 | Code | Meaning |
 |---|---|
-| `0` | `-Stress` played every file and none failed. With `-Loop`, no file failed before the run was stopped. |
+| `0` | `-Stress` played every file and none failed. With `-Loop`, no file failed before the run was stopped or its time limit was reached; a video interrupted by the time limit is not marked as passed or failed. |
 | `1` | A file failed, no video files were found, or a `-Stress` run was stopped before every file played. |
 
 `VideoTestApp.exe` is a Windows GUI app, so PowerShell doesn't wait for it. To wait and read the exit code:

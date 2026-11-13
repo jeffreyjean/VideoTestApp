@@ -12,18 +12,63 @@ public sealed class StressTests
 
         Assert.True(options.Stress);
         Assert.True(options.Loop);
+        Assert.Null(options.LoopDuration);
         Assert.Empty(options.Warnings);
     }
 
     [Fact]
-    public void LoopWithoutStressIsIgnoredWithWarning()
+    public void LoopWithoutStressEnablesInfiniteStress()
     {
-        var options = StartupOptions.Parse(["-Loop", @"C:\video.mp4"]);
+        var options = StartupOptions.Parse(["-Loop"]);
 
-        Assert.False(options.Stress);
+        Assert.True(options.Stress);
+        Assert.True(options.Loop);
+        Assert.Null(options.LoopDuration);
+        Assert.Empty(options.Warnings);
+    }
+
+    [Theory]
+    [InlineData("10", 600)]
+    [InlineData("0.5", 30)]
+    public void LoopDurationIsParsedInMinutes(string minutes, int seconds)
+    {
+        var options = StartupOptions.Parse(["-Loop", minutes]);
+
+        Assert.True(options.Stress);
+        Assert.True(options.Loop);
+        Assert.Equal(TimeSpan.FromSeconds(seconds), options.LoopDuration);
+        Assert.Null(options.FilePath);
+        Assert.Empty(options.Warnings);
+    }
+
+    [Fact]
+    public void LoopDoesNotConsumeFollowingStressOption()
+    {
+        var options = StartupOptions.Parse(["-Loop", "-Stress"]);
+
+        Assert.True(options.Stress);
+        Assert.True(options.Loop);
+        Assert.Null(options.LoopDuration);
+        Assert.Empty(options.Warnings);
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("-1")]
+    [InlineData("NaN")]
+    [InlineData("Infinity")]
+    [InlineData("1e100")]
+    [InlineData("1e-100")]
+    [InlineData("invalid")]
+    public void InvalidLoopDurationDisablesLoopingWithWarning(string value)
+    {
+        var options = StartupOptions.Parse(["-Loop", value]);
+
+        Assert.True(options.Stress);
         Assert.False(options.Loop);
-        Assert.Equal(@"C:\video.mp4", options.FilePath);
-        Assert.Contains(options.Warnings, warning => warning.Contains("-Loop"));
+        Assert.Null(options.LoopDuration);
+        Assert.Null(options.FilePath);
+        Assert.Contains(options.Warnings, warning => warning.Contains("Invalid -Loop duration"));
     }
 
     [Fact]

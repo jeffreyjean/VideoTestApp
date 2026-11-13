@@ -192,6 +192,27 @@ public sealed class VideoPlaybackTests
     }
 
     [Fact]
+    public async Task TimedStressLoopExitsBeforeCurrentVideoEnds()
+    {
+        var directory = CreateTestDirectory();
+        try
+        {
+            await CreateVideoAsync(directory, "a.mp4");
+
+            var (exitCode, log) = await RunStressAsync(directory, loop: true, loopMinutes: "0.01");
+
+            Assert.Equal(0, exitCode);
+            Assert.Contains("Loop duration reached (0.01 minutes).", log);
+            Assert.DoesNotContain("PASS  a.mp4", log);
+            Assert.DoesNotContain("Application closed.", log);
+        }
+        finally
+        {
+            DeleteTestDirectory(directory);
+        }
+    }
+
+    [Fact]
     public async Task StressLoopKeepsPlayingUntilClosed()
     {
         var directory = CreateTestDirectory();
@@ -213,13 +234,27 @@ public sealed class VideoPlaybackTests
     }
 
     private static async Task<(int ExitCode, string Log)> RunStressAsync(
-        string mediaFolder, bool loop, string? closeWhenLogContains = null)
+        string mediaFolder, bool loop, string? closeWhenLogContains = null, string? loopMinutes = null)
     {
         var exitCode = -1;
         string? logPath = null;
         await OnDispatcherAsync(async _ =>
         {
-            var window = new MainWindow(new StartupOptions(true, loop, null, []), mediaFolder);
+            var args = new List<string>();
+            if (loop)
+            {
+                args.Add("-Loop");
+                if (loopMinutes is not null)
+                {
+                    args.Add(loopMinutes);
+                }
+            }
+            else
+            {
+                args.Add("-Stress");
+            }
+
+            var window = new MainWindow(StartupOptions.Parse(args), mediaFolder);
             var closed = new TaskCompletionSource();
             window.Closed += (_, _) => closed.TrySetResult();
             window.Show();
